@@ -1,6 +1,5 @@
-import tf_silent
 import numpy as np
-import tensorflow as tf
+import torch
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.gridspec import GridSpec
@@ -16,9 +15,9 @@ def u0(tx):
     """
     Initial form.
     Args:
-        tx: variables (t, x) as tf.Tensor.
+        tx: variables (t, x) as torch.Tensor.
     Returns:
-        u(t, x) as tf.Tensor.
+        u(t, x) as torch.Tensor.
     """
 
     t = tx[..., 0, None]
@@ -39,9 +38,7 @@ if __name__ == '__main__':
 
     # build a core network model
     network = Network.build()
-    network.summary()
-    # build a PINN model
-    pinn = PINN(network).build()
+    pinn = PINN(network)
 
     # Time and space domain
     t_f=0.2
@@ -63,8 +60,8 @@ if __name__ == '__main__':
     tx_bnd_down[..., 1] = x_ini  
 
     # create training output
-    u_zero = np.zeros((num_train_samples, 1))
-    u_ini = u0(tf.constant(tx_ini)).numpy()
+    u_zero = np.zeros((num_train_samples, 1), dtype=np.float32)
+    u_ini = u0(torch.tensor(tx_ini, dtype=torch.float32)).numpy()
 
     # train the model using L-BFGS-B algorithm
     x_train = [tx_eqn, tx_ini, tx_bnd_up,tx_bnd_down]
@@ -77,7 +74,8 @@ if __name__ == '__main__':
     x_flat = np.linspace(x_ini, x_f, num_test_samples)
     t, x = np.meshgrid(t_flat, x_flat)
     tx = np.stack([t.flatten(), x.flatten()], axis=-1)
-    u = network.predict(tx, batch_size=num_test_samples)
+    with torch.no_grad():
+        u = network(torch.tensor(tx, dtype=torch.float32)).cpu().numpy()
     u = u.reshape(t.shape)
     
 
@@ -139,7 +137,8 @@ if __name__ == '__main__':
       U_1 = U_1 + C*np.sin(i*np.pi*x_flat_/2)*np.exp(-i**2*np.pi**2*t)
 
     tx = np.stack([np.full(t_flat.shape, 0), x_flat], axis=-1)
-    u_ = network.predict(tx, batch_size=num_test_samples)
+    with torch.no_grad():
+        u_ = network(torch.tensor(tx, dtype=torch.float32)).cpu().numpy()
     ax1.plot(x_flat, u_)
     ax1.plot(x_flat_, U_1,'r*')
     ax1.set_title('t={}'.format(0), fontdict = font1)
@@ -156,7 +155,8 @@ if __name__ == '__main__':
       U_1 = U_1 + C*np.sin(i*np.pi*x_flat_/2)*np.exp(-i**2*np.pi**2*t)
 
     tx = np.stack([np.full(t_flat.shape, 0.1), x_flat], axis=-1)
-    u_ = network.predict(tx, batch_size=num_test_samples)
+    with torch.no_grad():
+        u_ = network(torch.tensor(tx, dtype=torch.float32)).cpu().numpy()
     ax2.plot(x_flat, u_)
     ax2.plot(x_flat_, U_1,'r*')
     ax2.set_title('t={}'.format(0.1), fontdict = font1)
@@ -173,7 +173,8 @@ if __name__ == '__main__':
       U_1 = U_1 + C*np.sin(i*np.pi*x_flat_/2)*np.exp(-i**2*np.pi**2*t)
     
     tx = np.stack([np.full(t_flat.shape, 0.2), x_flat], axis=-1)
-    u_ = network.predict(tx, batch_size=num_test_samples)
+    with torch.no_grad():
+        u_ = network(torch.tensor(tx, dtype=torch.float32)).cpu().numpy()
     ax3.plot(x_flat, u_,label='Computed solution')
     ax3.plot(x_flat_, U_1,'r*',label='Exact solution')
     ax3.set_title('t={}'.format(0.2), fontdict = font1)
