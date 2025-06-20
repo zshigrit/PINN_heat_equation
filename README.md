@@ -1,6 +1,6 @@
 # Heat Equation 1D
 
-FROM https://github.com/AdrianDario10/Heat_Equation_1D
+**FROM https://github.com/AdrianDario10/Heat_Equation_1D**
 
 
 Physics informed neural network (PINN) for the 1D Heat equation
